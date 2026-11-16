@@ -74,6 +74,7 @@ class SettingsOut(BaseModel):
     embed_model_window_presets: dict[str, str] | None = None
     onec_platform_path: str = ""
     dump_default_out_root: str = ""
+    dump_watch_interval_sec: int = 60
 
 
 class SettingsPatch(BaseModel):
@@ -154,6 +155,10 @@ class SettingsPatch(BaseModel):
     )
     dump_default_out_root: str | None = Field(
         default=None, description="Default output root for new dump profiles"
+    )
+    dump_watch_interval_sec: int | None = Field(
+        default=None,
+        description="Seconds between path-dump mtime checks. 0 disables; otherwise 15–3600",
     )
 
 

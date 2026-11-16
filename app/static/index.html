@@ -1915,6 +1915,19 @@
               </div>
             </div>
           </section>
+          <section class="settings-section settings-box" aria-labelledby="settingsWatchTitle">
+            <div class="settings-section-title" id="settingsWatchTitle" data-i18n="appSettings.watchSection">Автообновление индекса</div>
+            <label class="dump-field-row">
+              <span class="dump-field-label" data-i18n="appSettings.watchInterval">Интервал, сек</span>
+              <div class="dump-field-controls">
+                <input type="number" id="dumpWatchIntervalSec" min="0" max="3600" step="1" />
+              </div>
+            </label>
+            <p class="field-hint hint" data-i18n="appSettings.watchHint">0 — выключено. Иначе 15–3600. Для выгрузок по пути сверяются дата и размер уже известных файлов; изменившиеся разбираются заново.</p>
+            <div class="settings-actions modal-actions" style="justify-content:flex-start;margin-top:8px">
+              <button class="btn secondary" type="button" id="saveDumpWatchBtn" data-i18n="dump.platform.save">Сохранить</button>
+            </div>
+          </section>
           <section class="settings-section settings-box" aria-labelledby="settingsEmbedTitle">
             <div class="settings-section-title" id="settingsEmbedTitle" data-i18n="appSettings.embedSection">Эмбеддинг</div>
             <div class="settings-metrics" id="embedSettingsInfo" aria-live="polite">
@@ -10507,6 +10520,8 @@
       const rootEl = document.getElementById('dumpDefaultOutRoot');
       if (pathEl) pathEl.value = settings.onec_platform_path || '';
       if (rootEl) rootEl.value = settings.dump_default_out_root || '';
+      const watchEl = document.getElementById('dumpWatchIntervalSec');
+      if (watchEl) watchEl.value = String(settings.dump_watch_interval_sec ?? 60);
       void refreshOnecPlatformVersionLabel();
       syncDumpBrowseButtons();
       syncDumpDockerUi();
@@ -10524,6 +10539,25 @@
       } catch (_) {
         el.textContent = '';
       }
+    }
+
+    async function saveDumpWatchSettings() {
+      const raw = (document.getElementById('dumpWatchIntervalSec')?.value || '').trim();
+      const sec = Number(raw);
+      if (!Number.isInteger(sec) || (sec !== 0 && (sec < 15 || sec > 3600))) {
+        return showAlert(t('appSettings.watchInvalid'), t('dialog.error'));
+      }
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dump_watch_interval_sec: sec }),
+      });
+      if (!res.ok) return showAlert(await res.text(), t('dialog.error'));
+      try {
+        settings = await res.json();
+      } catch (_) { /* keep previous settings */ }
+      syncOnecPlatformSettingsForm();
+      await showAlert(t('appSettings.watchSaved'), t('appSettings.title'));
     }
 
     async function saveOnecPlatformSettings() {
@@ -11362,6 +11396,7 @@
       syncDumpProfileFormUi();
     });
     document.getElementById('saveOnecPlatformBtn')?.addEventListener('click', () => void saveOnecPlatformSettings());
+    document.getElementById('saveDumpWatchBtn')?.addEventListener('click', () => void saveDumpWatchSettings());
     document.getElementById('onecPlatformDetectBtn')?.addEventListener('click', () => void detectOnecPlatform());
     document.getElementById('onecPlatformPath')?.addEventListener('change', () => void refreshOnecPlatformVersionLabel());
     document.getElementById('onecPlatformBrowseBtn')?.addEventListener('click', async () => {

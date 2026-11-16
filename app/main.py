@@ -24,6 +24,8 @@ from app.core.paths import resolve_static_dir
 from app.core.version import APP_VERSION
 from app.mcp.server import mcp
 from app.services.dump_recovery import recover_orphaned_dump_runs, recover_pending_create_entities
+from app.services.dump_watch import shutdown as shutdown_dump_watch
+from app.services.dump_watch import start as start_dump_watch
 from app.services.dump_worker import get_worker
 from app.services.mounts import effective_runtime_mode
 from app.services.pipeline import backfill_entity_types, cleanup_metadata_orphans, recover_interrupted_indexing
@@ -59,6 +61,7 @@ async def lifespan(app: FastAPI):
         conn.close()
     if effective_runtime_mode() != "docker":
         get_worker().start()
+    start_dump_watch()
     async with mcp_app.lifespan(app):
         usage_stats.record_lifecycle(
             "start",
@@ -66,6 +69,7 @@ async def lifespan(app: FastAPI):
         )
         log.info("cfsmcp2 ready on %s:%s mcp=/mcp", settings.host, settings.port)
         yield
+        shutdown_dump_watch()
         if effective_runtime_mode() != "docker":
             get_worker().shutdown()
         usage_stats.record_lifecycle("stop", "app shutdown")

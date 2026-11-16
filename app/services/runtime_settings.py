@@ -31,6 +31,10 @@ KEY_APP_LOG_MAX_ROWS = "app_log_max_rows"
 KEY_APP_LOG_ENABLED = "app_log_enabled"
 KEY_ONEC_PLATFORM_PATH = "onec_platform_path"
 KEY_DUMP_DEFAULT_OUT_ROOT = "dump_default_out_root"
+KEY_DUMP_WATCH_INTERVAL_SEC = "dump_watch_interval_sec"
+MIN_DUMP_WATCH_INTERVAL_SEC = 15
+MAX_DUMP_WATCH_INTERVAL_SEC = 3600
+DEFAULT_DUMP_WATCH_INTERVAL_SEC = 60
 ALLOWED_EMBEDDING_WORKERS = frozenset({1, 2, 4, 8, 12, 16})
 # 0 = off; otherwise seconds between entity list polls
 ALLOWED_UI_POLL_INTERVAL_SEC = frozenset({0, 2, 3, 5, 10, 15, 30, 60})
@@ -194,6 +198,23 @@ def get_bsl_embed_mode() -> str:
     from app.services.bsl_embed import DEFAULT_BSL_EMBED_MODE, normalize_bsl_embed_mode
 
     return normalize_bsl_embed_mode(get_setting(KEY_BSL_EMBED_MODE, DEFAULT_BSL_EMBED_MODE))
+
+
+def get_dump_watch_interval_sec() -> int:
+    """Seconds between path-dump stamp checks. 0 disables. Out of range → default."""
+    raw = get_setting(
+        KEY_DUMP_WATCH_INTERVAL_SEC,
+        str(getattr(settings, "dump_watch_interval_sec", DEFAULT_DUMP_WATCH_INTERVAL_SEC)),
+    )
+    try:
+        n = int(raw)
+    except ValueError:
+        n = DEFAULT_DUMP_WATCH_INTERVAL_SEC
+    if n == 0:
+        return 0
+    if n < MIN_DUMP_WATCH_INTERVAL_SEC or n > MAX_DUMP_WATCH_INTERVAL_SEC:
+        return DEFAULT_DUMP_WATCH_INTERVAL_SEC
+    return n
 
 
 def get_ui_poll_interval_sec() -> int:
@@ -382,6 +403,7 @@ def get_all() -> dict:
         "embed_model_window_presets": embed_model_window_presets(),
         "onec_platform_path": get_onec_platform_path(),
         "dump_default_out_root": get_dump_default_out_root(),
+        "dump_watch_interval_sec": get_dump_watch_interval_sec(),
     }
 
 
@@ -411,6 +433,7 @@ def update(
     bsl_max_chunks: int | None = None,
     onec_platform_path: str | None = None,
     dump_default_out_root: str | None = None,
+    dump_watch_interval_sec: int | None = None,
 ) -> dict:
     if lm_studio_url is not None:
         url = lm_studio_url.strip().rstrip("/")
@@ -521,4 +544,9 @@ def update(
         set_setting(KEY_ONEC_PLATFORM_PATH, onec_platform_path.strip())
     if dump_default_out_root is not None:
         set_setting(KEY_DUMP_DEFAULT_OUT_ROOT, dump_default_out_root.strip())
+    if dump_watch_interval_sec is not None:
+        n = int(dump_watch_interval_sec)
+        if n != 0:
+            n = max(MIN_DUMP_WATCH_INTERVAL_SEC, min(MAX_DUMP_WATCH_INTERVAL_SEC, n))
+        set_setting(KEY_DUMP_WATCH_INTERVAL_SEC, str(n))
     return get_all()

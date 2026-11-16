@@ -119,6 +119,19 @@ def patch_settings(body: SettingsPatch) -> SettingsOut:
                 400,
                 f"app_log_retain_days must be between {MIN_RETAIN_DAYS} and {MAX_RETAIN_DAYS}",
             )
+    if body.dump_watch_interval_sec is not None:
+        n = int(body.dump_watch_interval_sec)
+        if n != 0 and not (
+            runtime_settings.MIN_DUMP_WATCH_INTERVAL_SEC
+            <= n
+            <= runtime_settings.MAX_DUMP_WATCH_INTERVAL_SEC
+        ):
+            raise HTTPException(
+                400,
+                "dump_watch_interval_sec must be 0 or between "
+                f"{runtime_settings.MIN_DUMP_WATCH_INTERVAL_SEC} and "
+                f"{runtime_settings.MAX_DUMP_WATCH_INTERVAL_SEC}",
+            )
     if body.app_log_max_rows is not None:
         from app.services.app_log import MAX_MAX_ROWS, MIN_MAX_ROWS
 
@@ -151,6 +164,7 @@ def patch_settings(body: SettingsPatch) -> SettingsOut:
         bsl_max_chunks=body.bsl_max_chunks,
         onec_platform_path=body.onec_platform_path,
         dump_default_out_root=body.dump_default_out_root,
+        dump_watch_interval_sec=body.dump_watch_interval_sec,
     )
     return SettingsOut(**data)
 

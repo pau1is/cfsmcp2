@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     # ниже critical — красный (эмбеддинги вот-вот перестанут считаться).
     balance_low_rub: float = 100.0
     balance_critical_rub: float = 20.0
+    # Опрос path-выгрузок: секунды между сверкой mtime+size. 0 — выключено.
+    # 15…3600. События ФС через Docker bind-mount с Windows не используются.
+    dump_watch_interval_sec: int = 60
     default_embedding_model: str = "text-embedding-multilingual-e5-small"
     embedding_batch_size: int = 128
     # Cap texts per LM Studio /v1/embeddings call (objects may expand to many passages in chunks mode)
